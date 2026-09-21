@@ -43,6 +43,8 @@ def initialize_state() -> None:
         "history": [],
         "active_page": "智能诊断",
         "service_mode": "演示模式",
+        "selected_upload_signature": None,
+        "uploaded_file_signatures": (),
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -107,12 +109,54 @@ def selected_image() -> tuple[bytes, str, str] | None:
             help="建议使用清晰的叶片特写，文件不超过 10MB。",
         )
         if not uploaded_files:
+            st.session_state.selected_upload_signature = None
+            st.session_state.uploaded_file_signatures = ()
             return None
 
-        # “+”用于继续追加图片；当前默认诊断最后一次添加的图片。
-        uploaded = uploaded_files[-1]
+        signatures = tuple(
+            (
+                str(getattr(item, "file_id", "")),
+                str(getattr(item, "name", "")),
+                int(getattr(item, "size", 0)),
+            )
+            for item in uploaded_files
+        )
+        previous_signatures = st.session_state.uploaded_file_signatures
+        selected_signature = st.session_state.selected_upload_signature
+
+        if signatures != previous_signatures:
+            added = [signature for signature in signatures if signature not in previous_signatures]
+            if added:
+                selected_signature = added[-1]
+            elif selected_signature not in signatures:
+                selected_signature = signatures[-1]
+            st.session_state.uploaded_file_signatures = signatures
+
+        if selected_signature not in signatures:
+            selected_signature = signatures[-1]
+
+        selected_index = signatures.index(selected_signature)
+        uploaded = uploaded_files[selected_index]
+        st.session_state.selected_upload_signature = selected_signature
+
         if len(uploaded_files) > 1:
-            st.caption(f"已添加 {len(uploaded_files)} 张，当前诊断最后添加的图片。")
+            previous_col, position_col, next_col = st.columns([1, 2, 1])
+            with previous_col:
+                if st.button("← 上一张", key="image_previous", width="stretch"):
+                    selected_index = (selected_index - 1) % len(uploaded_files)
+                    st.session_state.selected_upload_signature = signatures[selected_index]
+                    st.rerun()
+            with position_col:
+                st.markdown(
+                    f"<div class='image-position'>{selected_index + 1} / {len(uploaded_files)}</div>",
+                    unsafe_allow_html=True,
+                )
+            with next_col:
+                if st.button("下一张 →", key="image_next", width="stretch"):
+                    selected_index = (selected_index + 1) % len(uploaded_files)
+                    st.session_state.selected_upload_signature = signatures[selected_index]
+                    st.rerun()
+            st.caption(f"已添加 {len(uploaded_files)} 张，当前选择：{uploaded.name}")
     else:
         uploaded = st.camera_input("拍摄叶片")
 
@@ -122,7 +166,7 @@ def selected_image() -> tuple[bytes, str, str] | None:
     image_bytes = uploaded.getvalue()
     mime_type = getattr(uploaded, "type", None) or "image/jpeg"
     filename = getattr(uploaded, "name", None) or "camera.jpg"
-    st.image(image_bytes, caption="待诊断图片", use_container_width=True)
+    st.image(image_bytes, caption=f"待诊断图片 · {filename}", use_container_width=True)
     return image_bytes, filename, mime_type
 
 

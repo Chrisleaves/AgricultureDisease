@@ -208,6 +208,32 @@ section[data-testid="stFileUploaderDropzone"]:has([data-testid="stFileChip"])
   pointer-events: auto;
 }
 
+.st-key-image_previous button,
+.st-key-image_next button {
+  min-height: 2.45rem;
+  border: 1px solid #78917d;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--leaf-dark);
+}
+
+.st-key-image_previous button:hover,
+.st-key-image_next button:hover {
+  border-color: var(--leaf-dark);
+  background: #f2f7f0;
+  color: var(--leaf-dark);
+}
+
+.image-position {
+  min-height: 2.45rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #637466;
+  font-size: .92rem;
+  font-weight: 700;
+}
+
 @media (max-width: 640px) {
   .block-container { padding: 1rem .8rem 3rem; }
   .hero { padding: 1.35rem 1.15rem; }
