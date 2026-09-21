@@ -10,7 +10,8 @@ AgricultureDisease/
 │  ├─ streamlit/    已实现的 Streamlit Web 前端
 │  └─ miniapp/      规划中的 uni-app 小程序前端
 ├─ docs/
-│  └─ API.md        前后端共享接口规范
+│  ├─ API.md                       前后端共享接口规范
+│  └─ MINIAPP_DEVELOPMENT_PLAN.md  小程序开发交接方案
 ├─ .gitignore
 └─ README.md
 ```
@@ -28,7 +29,7 @@ python -m streamlit run app.py
 
 ## uni-app 小程序端
 
-小程序端尚未开始构建。计划使用 Vue 3、TypeScript 与 Vite，目标优先覆盖微信小程序，并保留编译为 H5 和 App 的能力。规划说明见 [`apps/miniapp/README.md`](apps/miniapp/README.md)。
+小程序端尚未开始构建。计划使用 Vue 3、TypeScript 与 Vite，目标优先覆盖微信小程序，并保留编译为 H5 和 App 的能力。简要说明见 [`apps/miniapp/README.md`](apps/miniapp/README.md)，完整交接方案见 [`docs/MINIAPP_DEVELOPMENT_PLAN.md`](docs/MINIAPP_DEVELOPMENT_PLAN.md)。
 
 ## 接口协作
 
