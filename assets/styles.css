@@ -136,18 +136,42 @@ div[data-testid="stFileUploader"] {
   border-radius: 8px;
 }
 
-section[data-testid="stFileUploaderDropzone"] button {
+section[data-testid="stFileUploaderDropzone"] button:not([aria-label^="Remove "]):not([aria-label="Add files"]) {
   min-width: 8.5rem;
   font-size: 0;
 }
 
-section[data-testid="stFileUploaderDropzone"] button p {
+section[data-testid="stFileUploaderDropzone"] button:not([aria-label^="Remove "]):not([aria-label="Add files"]) p {
   display: none;
 }
 
-section[data-testid="stFileUploaderDropzone"] button::after {
+section[data-testid="stFileUploaderDropzone"] button:not([aria-label^="Remove "]):not([aria-label="Add files"])::after {
   content: "点击此处上传";
   font-size: .9rem;
+}
+
+section[data-testid="stFileUploaderDropzone"] button[aria-label^="Remove "] {
+  width: auto;
+  min-width: 2.8rem;
+  padding: 0 .35rem;
+}
+
+section[data-testid="stFileUploaderDropzone"] button[aria-label^="Remove "] svg {
+  display: none;
+}
+
+section[data-testid="stFileUploaderDropzone"] button[aria-label^="Remove "]::after {
+  content: "取消";
+  font-size: .82rem;
+}
+
+section[data-testid="stFileUploaderDropzone"] button[aria-label="Add files"] {
+  width: 2.75rem;
+  min-width: 2.75rem;
+}
+
+section[data-testid="stFileUploaderDropzone"] button[aria-label="Add files"]::after {
+  content: none;
 }
 
 @media (max-width: 640px) {
