@@ -4,5 +4,5 @@ __pycache__/
 .venv/
 venv/
 .env
+.vscode/
 .streamlit/secrets.toml
-
