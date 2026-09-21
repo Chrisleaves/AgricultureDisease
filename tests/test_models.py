@@ -1,6 +1,7 @@
 import unittest
 
-from src.models import DiagnosisResult
+from src.chart_data import build_candidate_distribution
+from src.models import Candidate, DiagnosisResult
 from src.report_parser import split_report
 
 
@@ -37,6 +38,19 @@ class ReportParserTests(unittest.TestCase):
         self.assertEqual(sections, [("最终诊断", "晚疫病"), ("诊断依据", "水渍状病斑")])
 
 
+class ChartDataTests(unittest.TestCase):
+    def test_adds_remaining_probability_as_other_categories(self) -> None:
+        rows = build_candidate_distribution(
+            [
+                Candidate("候选一", "First", 0.6),
+                Candidate("候选二", "Second", 0.2),
+                Candidate("候选三", "Third", 0.1),
+            ]
+        )
+        self.assertEqual(rows[-1]["label"], "其他类别")
+        self.assertAlmostEqual(float(rows[-1]["score"]), 0.1)
+        self.assertAlmostEqual(sum(float(row["score"]) for row in rows), 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()
-

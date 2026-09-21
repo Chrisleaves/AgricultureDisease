@@ -1,4 +1,4 @@
 streamlit>=1.50,<2
+altair>=5,<7
 requests>=2.32,<3
 Pillow>=11,<13
-

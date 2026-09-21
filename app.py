@@ -4,8 +4,10 @@ import html
 from pathlib import Path
 from typing import Any
 
+import altair as alt
 import streamlit as st
 
+from src.chart_data import build_candidate_distribution
 from src.config import AppConfig
 from src.diagnosis_service import ApiDiagnosisService, DiagnosisError, MockDiagnosisService
 from src.models import DiagnosisResult
@@ -171,14 +173,44 @@ def render_result(result: DiagnosisResult) -> None:
         unsafe_allow_html=True,
     )
 
-    st.markdown("### 候选判断")
-    for index, candidate in enumerate(result.candidates, start=1):
-        name_col, score_col = st.columns([4, 1])
-        with name_col:
-            st.markdown(f"**{index}. {candidate.label_cn}**  ·  `{candidate.label_en}`")
-            st.progress(candidate.score)
-        with score_col:
-            st.metric("概率", f"{candidate.score:.1%}")
+    st.markdown("### 候选概率分析")
+    chart_col, detail_col = st.columns([1, 1.35], gap="large")
+    with chart_col:
+        distribution = build_candidate_distribution(result.candidates)
+        chart = (
+            alt.Chart(alt.Data(values=distribution))
+            .mark_arc(innerRadius=48, outerRadius=92, stroke="#ffffff", strokeWidth=2)
+            .encode(
+                theta=alt.Theta("score:Q", stack=True),
+                color=alt.Color(
+                    "label:N",
+                    title=None,
+                    scale=alt.Scale(
+                        range=["#2f6b3d", "#719779", "#a7b9a8", "#d9dfd7"]
+                    ),
+                    legend=alt.Legend(orient="bottom", columns=2, labelLimit=130),
+                ),
+                tooltip=[
+                    alt.Tooltip("label:N", title="类别"),
+                    alt.Tooltip("score:Q", title="概率", format=".1%"),
+                ],
+            )
+            .properties(height=270)
+        )
+        st.altair_chart(chart, width="stretch")
+        st.caption("“其他类别”表示 Top-3 之外所有类别的剩余概率。")
+
+    with detail_col:
+        for index, candidate in enumerate(result.candidates, start=1):
+            name_col, score_col = st.columns([4, 1])
+            with name_col:
+                st.markdown(f"**{index}. {candidate.label_cn}**  ·  `{candidate.label_en}`")
+                st.progress(candidate.score)
+            with score_col:
+                st.markdown(
+                    f"<div class='candidate-score'>{candidate.score:.1%}</div>",
+                    unsafe_allow_html=True,
+                )
 
     st.markdown("### 智能诊断报告")
     if result.vlm_report:

@@ -5,7 +5,7 @@
 ## 功能
 
 - 上传叶片图片或调用设备摄像头拍摄
-- 展示 Top-3 候选、置信度和诊断耗时
+- 使用饼图和进度条展示 Top-3 候选、剩余概率、置信度和诊断耗时
 - 分区展示最终诊断、诊断依据、防治方案和复查建议
 - 大模型失败时降级展示分类候选
 - 当前会话内保存最近 20 条诊断记录
@@ -76,6 +76,7 @@ conda run -n AgricultureDisease python -m unittest discover -s tests -v
 ```text
 app.py                    Streamlit 页面入口
 assets/styles.css         页面视觉样式
+src/chart_data.py         候选概率图表数据整理
 src/config.py             环境变量和 secrets 配置
 src/diagnosis_service.py  Mock 与真实 HTTP 调用
 src/models.py             接口数据模型及校验

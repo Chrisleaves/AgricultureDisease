@@ -117,6 +117,13 @@
   line-height: 1.65;
 }
 
+.candidate-score {
+  padding-top: .2rem;
+  color: var(--leaf-dark);
+  font-weight: 700;
+  text-align: right;
+}
+
 div[data-testid="stButton"] > button[kind="primary"] {
   min-height: 3rem;
   border: 0;
