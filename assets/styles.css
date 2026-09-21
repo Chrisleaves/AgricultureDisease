@@ -151,9 +151,14 @@ section[data-testid="stFileUploaderDropzone"] button:not([aria-label^="Remove "]
 }
 
 section[data-testid="stFileUploaderDropzone"] button[aria-label^="Remove "] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: auto;
   min-width: 2.8rem;
+  height: 2rem;
   padding: 0 .35rem;
+  color: var(--leaf-dark);
 }
 
 section[data-testid="stFileUploaderDropzone"] button[aria-label^="Remove "] svg {
@@ -166,12 +171,33 @@ section[data-testid="stFileUploaderDropzone"] button[aria-label^="Remove "]::aft
 }
 
 section[data-testid="stFileUploaderDropzone"] button[aria-label="Add files"] {
-  width: 2.75rem;
-  min-width: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  min-width: 2.35rem;
+  height: 2.35rem;
+  padding: 0;
+  border: 1px solid #6f8c75;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--leaf-dark);
 }
 
 section[data-testid="stFileUploaderDropzone"] button[aria-label="Add files"]::after {
   content: none;
+}
+
+/* 已有文件时，空白区域不再响应点击，只保留“取消”和“+”两个按钮。 */
+section[data-testid="stFileUploaderDropzone"]:has([data-testid="stFileChip"]) {
+  pointer-events: none;
+}
+
+section[data-testid="stFileUploaderDropzone"]:has([data-testid="stFileChip"])
+  button[aria-label^="Remove "],
+section[data-testid="stFileUploaderDropzone"]:has([data-testid="stFileChip"])
+  button[aria-label="Add files"] {
+  pointer-events: auto;
 }
 
 @media (max-width: 640px) {
