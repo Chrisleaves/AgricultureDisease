@@ -49,8 +49,8 @@ def initialize_state() -> None:
 
 def render_sidebar(config: AppConfig) -> tuple[str, str]:
     with st.sidebar:
-        st.markdown("## 🌿 叶知")
-        st.caption("农作物病害多模态诊断")
+        st.markdown("## 农作物病害诊断")
+        st.caption("叶片图像辅助识别系统")
         page = st.radio(
             "导航",
             ["智能诊断", "诊断记录", "使用指南"],
@@ -86,9 +86,9 @@ def render_hero() -> None:
     st.markdown(
         """
         <section class="hero">
-          <div class="hero-kicker">Crop Health Intelligence</div>
-          <h1>拍一片叶子，读懂作物健康</h1>
-          <p>上传或拍摄发病叶片，系统将给出候选病害、可信度、诊断依据和处置建议。</p>
+          <div class="hero-mark">叶片图像辅助识别</div>
+          <h1>农作物病害诊断</h1>
+          <p>上传清晰的叶片照片，查看候选病害、识别可信度和防治参考。</p>
         </section>
         """,
         unsafe_allow_html=True,
@@ -159,7 +159,7 @@ def confidence_meta(level: str) -> tuple[str, str]:
 def render_result(result: DiagnosisResult) -> None:
     label, css_class = confidence_meta(result.confidence_level)
     safe_name = html.escape(result.classifier_top1)
-    st.markdown('<div class="section-label">DIAGNOSIS RESULT</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">诊断结果</div>', unsafe_allow_html=True)
     st.markdown(
         f"""
         <section class="result-hero">
@@ -183,18 +183,18 @@ def render_result(result: DiagnosisResult) -> None:
     st.markdown("### 智能诊断报告")
     if result.vlm_report:
         sections = split_report(result.vlm_report)
-        for row_start in range(0, len(sections), 2):
-            row = sections[row_start : row_start + 2]
-            columns = st.columns(len(row))
-            for column, (title, content) in zip(columns, row):
-                with column:
-                    st.markdown(
-                        '<section class="report-section">'
-                        f"<h4>{html.escape(title)}</h4>"
-                        f"<p>{html.escape(content).replace(chr(10), '<br>')}</p>"
-                        "</section>",
-                        unsafe_allow_html=True,
-                    )
+        report_content = []
+        for title, content in sections:
+            report_content.append(
+                '<article class="report-section">'
+                f"<h4>{html.escape(title)}</h4>"
+                f"<p>{html.escape(content).replace(chr(10), '<br>')}</p>"
+                "</article>"
+            )
+        st.markdown(
+            '<section class="report-panel">' + "".join(report_content) + "</section>",
+            unsafe_allow_html=True,
+        )
     else:
         st.warning(f"智能复核暂不可用：{result.vlm_error or '未返回报告'}")
 
@@ -294,4 +294,3 @@ elif page == "诊断记录":
     history_page()
 else:
     guide_page()
-
