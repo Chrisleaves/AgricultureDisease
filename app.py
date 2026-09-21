@@ -100,11 +100,19 @@ def render_hero() -> None:
 def selected_image() -> tuple[bytes, str, str] | None:
     source = st.radio("图片来源", ["上传图片", "摄像头拍摄"], horizontal=True)
     if source == "上传图片":
-        uploaded = st.file_uploader(
+        uploaded_files = st.file_uploader(
             "选择叶片照片",
             type=["jpg", "jpeg", "png", "webp"],
+            accept_multiple_files=True,
             help="建议使用清晰的叶片特写，文件不超过 10MB。",
         )
+        if not uploaded_files:
+            return None
+
+        # “+”用于继续追加图片；当前默认诊断最后一次添加的图片。
+        uploaded = uploaded_files[-1]
+        if len(uploaded_files) > 1:
+            st.caption(f"已添加 {len(uploaded_files)} 张，当前诊断最后添加的图片。")
     else:
         uploaded = st.camera_input("拍摄叶片")
 
