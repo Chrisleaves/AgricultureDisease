@@ -136,6 +136,20 @@ div[data-testid="stFileUploader"] {
   border-radius: 8px;
 }
 
+section[data-testid="stFileUploaderDropzone"] button {
+  min-width: 8.5rem;
+  font-size: 0;
+}
+
+section[data-testid="stFileUploaderDropzone"] button p {
+  display: none;
+}
+
+section[data-testid="stFileUploaderDropzone"] button::after {
+  content: "点击此处上传";
+  font-size: .9rem;
+}
+
 @media (max-width: 640px) {
   .block-container { padding: 1rem .8rem 3rem; }
   .hero { padding: 1.35rem 1.15rem; }

@@ -177,17 +177,18 @@ def render_result(result: DiagnosisResult) -> None:
     chart_col, detail_col = st.columns([1, 1.35], gap="large")
     with chart_col:
         distribution = build_candidate_distribution(result.candidates)
+        chart_labels = [str(row["label"]) for row in distribution]
+        chart_colors = ["#2f6b3d", "#719779", "#a7b9a8", "#d9dfd7"][: len(chart_labels)]
         chart = (
             alt.Chart(alt.Data(values=distribution))
-            .mark_arc(innerRadius=48, outerRadius=92, stroke="#ffffff", strokeWidth=2)
+            .mark_arc(innerRadius=40, outerRadius=76, stroke="#ffffff", strokeWidth=1.5)
             .encode(
                 theta=alt.Theta("score:Q", stack=True),
                 color=alt.Color(
                     "label:N",
                     title=None,
-                    scale=alt.Scale(
-                        range=["#2f6b3d", "#719779", "#a7b9a8", "#d9dfd7"]
-                    ),
+                    sort=chart_labels,
+                    scale=alt.Scale(domain=chart_labels, range=chart_colors),
                     legend=alt.Legend(orient="bottom", columns=2, labelLimit=130),
                 ),
                 tooltip=[
@@ -195,7 +196,10 @@ def render_result(result: DiagnosisResult) -> None:
                     alt.Tooltip("score:Q", title="概率", format=".1%"),
                 ],
             )
-            .properties(height=270)
+            .properties(
+                height=290,
+                padding={"top": 24, "right": 12, "bottom": 12, "left": 12},
+            )
         )
         st.altair_chart(chart, width="stretch")
         st.caption("“其他类别”表示 Top-3 之外所有类别的剩余概率。")
