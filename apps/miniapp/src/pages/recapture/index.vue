@@ -1,7 +1,10 @@
 <template>
   <view class="page-shell recapture-page">
     <view class="surface-card notice-card">
-      <view class="notice-icon">↻</view>
+      <view class="notice-icon" aria-label="警告">
+        <view class="warning-triangle" />
+        <text class="warning-mark">!</text>
+      </view>
       <text class="notice-title">需要重新拍摄</text>
       <text class="notice-copy">当前图片中未识别到可诊断的作物叶片。</text>
       <view class="reason-box">
@@ -89,7 +92,9 @@ function backToDiagnosis() {
 <style scoped lang="scss">
 .recapture-page { padding-top: 30rpx; }
 .notice-card { display: flex; flex-direction: column; align-items: center; padding-top: 42rpx; text-align: center; }
-.notice-icon { display: flex; width: 96rpx; height: 96rpx; align-items: center; justify-content: center; color: #fff; background: #d68a35; border-radius: 50%; font-size: 54rpx; line-height: 1; }
+.notice-icon { position: relative; width: 104rpx; height: 92rpx; }
+.warning-triangle { position: absolute; top: 0; left: 0; width: 0; height: 0; border-right: 52rpx solid transparent; border-bottom: 92rpx solid #d94841; border-left: 52rpx solid transparent; }
+.warning-mark { position: absolute; top: 27rpx; left: 0; width: 104rpx; color: #fff; font-size: 50rpx; font-weight: 800; line-height: 1; text-align: center; }
 .notice-title { margin-top: 24rpx; color: #294431; font-size: 36rpx; font-weight: 750; }
 .notice-copy { margin-top: 10rpx; color: #748079; font-size: 25rpx; }
 .reason-box { width: 100%; margin-top: 30rpx; padding: 22rpx 24rpx; box-sizing: border-box; color: #704f1c; background: #fff6dd; border: 1rpx solid #efd89a; border-radius: 16rpx; text-align: left; }
