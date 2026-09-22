@@ -1,0 +1,55 @@
+{
+  "pages": [
+    {
+      "path": "pages/diagnosis/index",
+      "style": {
+        "navigationBarTitleText": "智能诊断"
+      }
+    },
+    {
+      "path": "pages/result/index",
+      "style": {
+        "navigationBarTitleText": "诊断结果"
+      }
+    },
+    {
+      "path": "pages/history/index",
+      "style": {
+        "navigationBarTitleText": "诊断记录"
+      }
+    },
+    {
+      "path": "pages/guide/index",
+      "style": {
+        "navigationBarTitleText": "使用指南"
+      }
+    }
+  ],
+  "tabBar": {
+    "color": "#647067",
+    "selectedColor": "#287b4d",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/diagnosis/index",
+        "text": "诊断"
+      },
+      {
+        "pagePath": "pages/history/index",
+        "text": "记录"
+      },
+      {
+        "pagePath": "pages/guide/index",
+        "text": "指南"
+      }
+    ]
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "作物诊断",
+    "navigationBarBackgroundColor": "#287b4d",
+    "backgroundColor": "#f4f7f4",
+    "backgroundTextStyle": "dark"
+  }
+}
