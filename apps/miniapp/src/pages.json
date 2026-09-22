@@ -9,7 +9,7 @@
     {
       "path": "pages/diagnosis/index",
       "style": {
-        "navigationBarTitleText": "智能诊断"
+        "navigationStyle": "custom"
       }
     },
     {
@@ -39,15 +39,21 @@
     "list": [
       {
         "pagePath": "pages/diagnosis/index",
-        "text": "诊断"
+        "text": "诊断",
+        "iconPath": "static/tabbar/diagnosis.png",
+        "selectedIconPath": "static/tabbar/diagnosis-active.png"
       },
       {
         "pagePath": "pages/history/index",
-        "text": "记录"
+        "text": "记录",
+        "iconPath": "static/tabbar/record.png",
+        "selectedIconPath": "static/tabbar/record-active.png"
       },
       {
         "pagePath": "pages/guide/index",
-        "text": "指南"
+        "text": "指南",
+        "iconPath": "static/tabbar/guide.png",
+        "selectedIconPath": "static/tabbar/guide-active.png"
       }
     ]
   },

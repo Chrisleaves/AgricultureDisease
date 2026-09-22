@@ -25,7 +25,7 @@
         />
         <text v-if="modelUrl" class="clear-input" @click="modelUrl = ''">×</text>
       </view>
-      <text class="field-help">填写服务根地址即可，系统会调用 /health 和 /diagnose</text>
+      <text class="field-help">填写服务根地址即可，系统会调用 /health 和 /diagnose；连接检测最多等待 15 秒</text>
 
       <view v-if="statusMessage" class="connection-status" :class="statusType">
         <text>{{ statusMessage }}</text>

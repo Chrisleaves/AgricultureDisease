@@ -8,6 +8,7 @@ import type {
 import { getConfiguredApiBaseUrl, isPreviewMode, validateModelUrl } from "@/utils/model-config";
 
 const REQUEST_TIMEOUT_MS = 120_000;
+const HEALTH_TIMEOUT_MS = 15_000;
 
 export class DiagnosisApiError extends Error {
   constructor(message: string, public readonly statusCode?: number) {
@@ -103,25 +104,42 @@ function parseDiagnosisResult(payload: unknown): DiagnosisResult {
 
 function requestHealth(baseUrl: string): Promise<HealthResponse> {
   return new Promise((resolve, reject) => {
-    uni.request({
+    let finished = false;
+    let requestTask: { abort(): void } | undefined;
+    const finish = (callback: () => void) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timeoutTimer);
+      callback();
+    };
+    const timeoutTimer = setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      requestTask?.abort();
+      reject(new DiagnosisApiError(`连接超时：模型服务在 ${HEALTH_TIMEOUT_MS / 1000} 秒内未响应`));
+    }, HEALTH_TIMEOUT_MS);
+
+    requestTask = uni.request({
       url: `${baseUrl}/health`,
       method: "GET",
-      timeout: 15_000,
+      timeout: HEALTH_TIMEOUT_MS,
       success(response) {
-        if (response.statusCode < 200 || response.statusCode >= 300) {
-          reject(new DiagnosisApiError(getErrorMessage(response.data, "模型服务暂不可用"), response.statusCode));
-          return;
-        }
+        finish(() => {
+          if (response.statusCode < 200 || response.statusCode >= 300) {
+            reject(new DiagnosisApiError(getErrorMessage(response.data, "模型服务暂不可用"), response.statusCode));
+            return;
+          }
 
-        const data = parseJson(response.data);
-        if (!isRecord(data) || typeof data.status !== "string") {
-          reject(new DiagnosisApiError("健康检查响应格式不正确"));
-          return;
-        }
-        resolve(data as HealthResponse);
+          const data = parseJson(response.data);
+          if (!isRecord(data) || typeof data.status !== "string") {
+            reject(new DiagnosisApiError("健康检查响应格式不正确"));
+            return;
+          }
+          resolve(data as HealthResponse);
+        });
       },
       fail(error) {
-        reject(new DiagnosisApiError(error.errMsg || "无法连接模型服务"));
+        finish(() => reject(new DiagnosisApiError(error.errMsg || "无法连接模型服务")));
       },
     });
   });

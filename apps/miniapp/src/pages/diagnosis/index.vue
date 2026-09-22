@@ -1,10 +1,17 @@
 <template>
+  <view class="custom-navbar">
+    <view class="navbar-inner">
+      <button class="back-settings" @click="changeModel">
+        <text class="back-arrow">‹</text>
+        <text>模型设置</text>
+      </button>
+      <text class="navbar-title">智能诊断</text>
+    </view>
+  </view>
+
   <view class="page-shell diagnosis-page">
     <view class="hero-card">
-      <view class="hero-topline">
-        <view class="hero-badge">{{ accessModeLabel }}</view>
-        <button class="settings-button" @click="changeModel">模型设置</button>
-      </view>
+      <view class="hero-badge">{{ accessModeLabel }}</view>
       <text class="hero-title">拍一张清晰病叶，快速获得诊断建议</text>
       <text class="hero-subtitle">当前轮播中的图片将作为本次诊断图片</text>
     </view>
@@ -178,11 +185,14 @@ function changeModel() {
 </script>
 
 <style scoped lang="scss">
+.custom-navbar { color: #fff; background: #287b4d; padding-top: var(--status-bar-height); }
+.navbar-inner { position: relative; display: flex; height: 88rpx; align-items: center; justify-content: center; }
+.navbar-title { font-size: 30rpx; font-weight: 700; }
+.back-settings { position: absolute; left: 18rpx; display: flex; align-items: center; margin: 0; padding: 8rpx 14rpx 8rpx 6rpx; color: #fff; background: transparent; font-size: 24rpx; line-height: 1.5; }
+.back-arrow { margin-right: 5rpx; font-size: 46rpx; font-weight: 300; line-height: .8; }
 .diagnosis-page { padding-top: 22rpx; }
 .hero-card { padding: 36rpx 32rpx 46rpx; color: #fff; background: linear-gradient(140deg, #184e34, #32865a 62%, #69a869); border-radius: 28rpx; box-shadow: 0 16rpx 36rpx rgba(25, 84, 53, 0.2); }
-.hero-topline { display: flex; align-items: center; justify-content: space-between; }
 .hero-badge { display: inline-block; padding: 7rpx 16rpx; color: #dff5e7; background: rgba(255,255,255,.14); border: 1rpx solid rgba(255,255,255,.25); border-radius: 999rpx; font-size: 22rpx; }
-.settings-button { margin: 0; padding: 7rpx 16rpx; color: #f1fff5; background: rgba(255,255,255,.13); border: 1rpx solid rgba(255,255,255,.25); border-radius: 999rpx; font-size: 22rpx; line-height: 1.5; }
 .hero-title { display: block; max-width: 580rpx; margin-top: 20rpx; font-size: 42rpx; font-weight: 750; line-height: 1.38; }
 .hero-subtitle { display: block; margin-top: 14rpx; color: rgba(255,255,255,.78); font-size: 24rpx; }
 .upload-card { margin-top: 24rpx; }
