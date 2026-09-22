@@ -128,7 +128,7 @@ const diagnosisProgress = ref(0);
 const progressLabel = ref("正在准备诊断…");
 const progressPercentText = computed(() => `${diagnosisProgress.value}%`);
 const progressBarStyle = computed(() => `width: ${diagnosisProgress.value}%`);
-let progressTimer: ReturnType<typeof setInterval> | undefined;
+let progressTimer: ReturnType<typeof setTimeout> | undefined;
 
 onShow(() => {
   accessConfig.value = getModelAccessConfig();
@@ -234,27 +234,52 @@ async function submitDiagnosis() {
 
 function startProgress() {
   stopProgress();
-  diagnosisProgress.value = 6;
+  diagnosisProgress.value = 1;
   progressLabel.value = previewMode.value ? "正在生成示例结果…" : "正在上传图片…";
-  progressTimer = setInterval(() => {
-    const current = diagnosisProgress.value;
-    if (current >= 92) return;
-    diagnosisProgress.value = Math.min(92, current + Math.max(1, Math.round((92 - current) * 0.08)));
-    if (diagnosisProgress.value >= 65) progressLabel.value = "多模态模型正在复核…";
-    else if (diagnosisProgress.value >= 25) progressLabel.value = "分类模型正在识别…";
-  }, 800);
+  scheduleProgressTick();
+}
+
+function scheduleProgressTick() {
+  const current = diagnosisProgress.value;
+  if (current >= 99) return;
+
+  const delay = current < 40
+    ? 75
+    : current <= 50
+      ? 300
+      : current < 70
+        ? 150
+        : 60;
+
+  progressTimer = setTimeout(() => {
+    diagnosisProgress.value = Math.min(99, diagnosisProgress.value + 1);
+    if (diagnosisProgress.value >= 70) progressLabel.value = "多模态模型正在复核…";
+    else if (diagnosisProgress.value >= 40) progressLabel.value = "分类模型正在识别…";
+    scheduleProgressTick();
+  }, delay);
 }
 
 function stopProgress() {
-  if (progressTimer) clearInterval(progressTimer);
+  if (progressTimer) clearTimeout(progressTimer);
   progressTimer = undefined;
 }
 
 async function completeProgress() {
   stopProgress();
-  diagnosisProgress.value = 100;
+  await new Promise<void>((resolve) => {
+    const accelerate = () => {
+      if (diagnosisProgress.value >= 100) {
+        resolve();
+        return;
+      }
+      diagnosisProgress.value += 1;
+      progressTimer = setTimeout(accelerate, 18);
+    };
+    accelerate();
+  });
+  stopProgress();
   progressLabel.value = "分析完成";
-  await new Promise((resolve) => setTimeout(resolve, 350));
+  await new Promise((resolve) => setTimeout(resolve, 250));
 }
 
 function changeModel() {
