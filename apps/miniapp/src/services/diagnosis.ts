@@ -5,6 +5,7 @@ import type {
   DiagnosisResult,
   HealthResponse,
 } from "@/types/diagnosis";
+import { getConfiguredApiBaseUrl, isPreviewMode, validateModelUrl } from "@/utils/model-config";
 
 const REQUEST_TIMEOUT_MS = 120_000;
 
@@ -16,16 +17,11 @@ export class DiagnosisApiError extends Error {
 }
 
 function getApiBaseUrl(): string {
-  const configured = import.meta.env.VITE_API_BASE_URL?.trim();
+  const configured = getConfiguredApiBaseUrl();
   if (!configured) {
-    throw new DiagnosisApiError("尚未配置模型服务地址，请先设置 VITE_API_BASE_URL");
+    throw new DiagnosisApiError("尚未配置模型服务，请返回模型接入页完成设置");
   }
-
-  if (!/^https?:\/\//i.test(configured)) {
-    throw new DiagnosisApiError("模型服务地址必须以 http:// 或 https:// 开头");
-  }
-
-  return configured.replace(/\/+$/, "");
+  return configured;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -105,8 +101,7 @@ function parseDiagnosisResult(payload: unknown): DiagnosisResult {
   };
 }
 
-export function checkHealth(): Promise<HealthResponse> {
-  const baseUrl = getApiBaseUrl();
+function requestHealth(baseUrl: string): Promise<HealthResponse> {
   return new Promise((resolve, reject) => {
     uni.request({
       url: `${baseUrl}/health`,
@@ -132,7 +127,46 @@ export function checkHealth(): Promise<HealthResponse> {
   });
 }
 
+export function checkHealth(): Promise<HealthResponse> {
+  if (isPreviewMode()) return Promise.resolve({ status: "preview" });
+  return requestHealth(getApiBaseUrl());
+}
+
+export function checkHealthAtUrl(value: string): Promise<HealthResponse> {
+  let baseUrl: string;
+  try {
+    baseUrl = validateModelUrl(value);
+  } catch (error) {
+    return Promise.reject(new DiagnosisApiError(error instanceof Error ? error.message : "模型服务 URL 不正确"));
+  }
+  return requestHealth(baseUrl);
+}
+
+function getPreviewResult(): DiagnosisResult {
+  return {
+    candidates: [
+      { label_cn: "番茄-晚疫病（示例）", label_en: "Tomato Late blight", score: 0.82 },
+      { label_cn: "番茄-早疫病（示例）", label_en: "Tomato Early blight", score: 0.12 },
+      { label_cn: "番茄-叶霉病（示例）", label_en: "Tomato Leaf Mold", score: 0.04 },
+    ],
+    classifier_top1: "番茄-晚疫病（预览示例）",
+    confidence: 0.82,
+    confidence_level: "high",
+    vlm_report:
+      "【最终诊断】这是预览模式生成的模拟结果，不代表所选图片的真实诊断。\n\n【诊断依据】当前没有连接模型服务，此处用于演示候选概率、报告分段和页面布局。\n\n【防治方案】接入真实模型后，请根据真实结果并结合当地登记用药制定方案。\n\n【复查建议】配置模型 URL 后重新诊断，并由农技人员结合田间症状复核。",
+    vlm_error: null,
+    elapsed_ms: 900,
+    is_preview: true,
+  };
+}
+
 export function diagnoseImage(filePath: string): Promise<DiagnosisResult> {
+  if (isPreviewMode()) {
+    return new Promise((resolve) => {
+      setTimeout(() => resolve(getPreviewResult()), 900);
+    });
+  }
+
   const baseUrl = getApiBaseUrl();
   return new Promise((resolve, reject) => {
     uni.uploadFile({

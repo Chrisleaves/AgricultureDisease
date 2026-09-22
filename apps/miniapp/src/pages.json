@@ -1,6 +1,12 @@
 {
   "pages": [
     {
+      "path": "pages/setup/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/diagnosis/index",
       "style": {
         "navigationBarTitleText": "智能诊断"

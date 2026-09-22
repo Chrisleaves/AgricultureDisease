@@ -1,7 +1,10 @@
 <template>
   <view class="page-shell diagnosis-page">
     <view class="hero-card">
-      <view class="hero-badge">AI 作物医生</view>
+      <view class="hero-topline">
+        <view class="hero-badge">{{ accessModeLabel }}</view>
+        <button class="settings-button" @click="changeModel">模型设置</button>
+      </view>
       <text class="hero-title">拍一张清晰病叶，快速获得诊断建议</text>
       <text class="hero-subtitle">当前轮播中的图片将作为本次诊断图片</text>
     </view>
@@ -37,13 +40,18 @@
       <text>{{ state.message }}</text>
     </view>
 
-    <button class="primary-button diagnose-button" :disabled="!currentImage || busy" :loading="busy" @click="submitDiagnosis">
-      {{ busy ? "正在分析，请稍候" : "诊断当前图片" }}
+    <button
+      class="primary-button diagnose-button"
+      :disabled="(!currentImage && !previewMode) || busy"
+      :loading="busy"
+      @click="submitDiagnosis"
+    >
+      {{ busy ? "正在分析，请稍候" : previewMode ? "查看示例诊断" : "诊断当前图片" }}
     </button>
 
-    <view v-if="!apiConfigured" class="config-notice">
-      <text class="config-title">尚未配置模型服务</text>
-      <text>复制 .env.example 为 .env.local，填写 VITE_API_BASE_URL 后重新启动构建。</text>
+    <view v-if="previewMode" class="config-notice">
+      <text class="config-title">当前为预览模式</text>
+      <text>图片只在本机用于界面演示，不会上传；诊断结果是模拟数据，不代表真实病害判断。</text>
     </view>
 
     <view class="safety-note">
@@ -55,6 +63,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { onShow } from "@dcloudio/uni-app";
 import ImageCarousel from "@/components/ImageCarousel.vue";
 import ImageUploader from "@/components/ImageUploader.vue";
 import { checkHealth, diagnoseImage, getReadableError } from "@/services/diagnosis";
@@ -62,13 +71,27 @@ import { useDiagnosisStore } from "@/stores/diagnosis";
 import type { SelectedImage } from "@/types/diagnosis";
 import { saveDiagnosisHistory } from "@/utils/history";
 import { MAX_IMAGE_COUNT, validateSelectedImage } from "@/utils/image";
+import {
+  getConfiguredApiBaseUrl,
+  getModelAccessConfig,
+  type ModelAccessConfig,
+} from "@/utils/model-config";
 
 const { state, appendImages, removeImage, setCurrentIndex, setStage, setResult } = useDiagnosisStore();
 const healthChecking = ref(false);
 const remaining = computed(() => Math.max(0, MAX_IMAGE_COUNT - state.images.length));
 const currentImage = computed(() => state.images[state.currentIndex]);
 const busy = computed(() => state.stage === "validating" || state.stage === "uploading");
-const apiConfigured = computed(() => Boolean(import.meta.env.VITE_API_BASE_URL?.trim()));
+const accessConfig = ref<ModelAccessConfig | null>(null);
+const previewMode = computed(() => accessConfig.value?.mode === "preview");
+const accessModeLabel = computed(() => previewMode.value ? "预览模式" : "AI 模型已连接");
+
+onShow(() => {
+  accessConfig.value = getModelAccessConfig();
+  if (!accessConfig.value && !getConfiguredApiBaseUrl()) {
+    uni.reLaunch({ url: "/pages/setup/index" });
+  }
+});
 
 async function validateFiles(files: Array<{ path: string; size: number }>) {
   setStage("validating", "正在检查图片…");
@@ -120,7 +143,10 @@ async function handleHealthCheck() {
   healthChecking.value = true;
   try {
     const response = await checkHealth();
-    uni.showToast({ title: response.status === "ok" ? "服务运行正常" : `服务状态：${response.status}`, icon: "none" });
+    const title = response.status === "preview"
+      ? "预览模式无需连接模型"
+      : response.status === "ok" ? "服务运行正常" : `服务状态：${response.status}`;
+    uni.showToast({ title, icon: "none" });
   } catch (error) {
     uni.showModal({ title: "服务检查失败", content: getReadableError(error), showCancel: false });
   } finally {
@@ -129,12 +155,12 @@ async function handleHealthCheck() {
 }
 
 async function submitDiagnosis() {
-  if (!currentImage.value || busy.value) return;
+  if ((!currentImage.value && !previewMode.value) || busy.value) return;
   setResult(null);
-  setStage("uploading", "正在上传并分析当前图片，通常需要数秒…");
+  setStage("uploading", previewMode.value ? "正在生成预览结果…" : "正在上传并分析当前图片，通常需要数秒…");
 
   try {
-    const result = await diagnoseImage(currentImage.value.path);
+    const result = await diagnoseImage(currentImage.value?.path ?? "");
     const history = saveDiagnosisHistory(result);
     setResult(result);
     setStage("success", "诊断完成");
@@ -145,12 +171,18 @@ async function submitDiagnosis() {
     uni.showModal({ title: "诊断未完成", content: message, showCancel: false });
   }
 }
+
+function changeModel() {
+  uni.navigateTo({ url: "/pages/setup/index?from=settings" });
+}
 </script>
 
 <style scoped lang="scss">
 .diagnosis-page { padding-top: 22rpx; }
 .hero-card { padding: 36rpx 32rpx 46rpx; color: #fff; background: linear-gradient(140deg, #184e34, #32865a 62%, #69a869); border-radius: 28rpx; box-shadow: 0 16rpx 36rpx rgba(25, 84, 53, 0.2); }
+.hero-topline { display: flex; align-items: center; justify-content: space-between; }
 .hero-badge { display: inline-block; padding: 7rpx 16rpx; color: #dff5e7; background: rgba(255,255,255,.14); border: 1rpx solid rgba(255,255,255,.25); border-radius: 999rpx; font-size: 22rpx; }
+.settings-button { margin: 0; padding: 7rpx 16rpx; color: #f1fff5; background: rgba(255,255,255,.13); border: 1rpx solid rgba(255,255,255,.25); border-radius: 999rpx; font-size: 22rpx; line-height: 1.5; }
 .hero-title { display: block; max-width: 580rpx; margin-top: 20rpx; font-size: 42rpx; font-weight: 750; line-height: 1.38; }
 .hero-subtitle { display: block; margin-top: 14rpx; color: rgba(255,255,255,.78); font-size: 24rpx; }
 .upload-card { margin-top: 24rpx; }

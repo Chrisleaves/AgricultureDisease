@@ -11,7 +11,10 @@
     <view v-if="history.length" class="history-list">
       <view v-for="item in history" :key="item.id" class="surface-card history-item" @click="openResult(item.id)">
         <view class="item-topline">
-          <text class="disease-name">{{ item.result.classifier_top1 }}</text>
+          <view class="disease-line">
+            <text class="disease-name">{{ item.result.classifier_top1 }}</text>
+            <text v-if="item.result.is_preview" class="preview-label">模拟</text>
+          </view>
           <text class="confidence-pill" :class="`pill-${item.result.confidence_level}`">
             {{ confidenceText(item.result.confidence_level) }}
           </text>
@@ -83,6 +86,9 @@ function confirmClear() {
 .history-item { margin-bottom: 18rpx; }
 .item-topline,.item-bottomline { display: flex; align-items: center; justify-content: space-between; }
 .disease-name { max-width: 500rpx; overflow: hidden; color: #294431; font-size: 31rpx; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.disease-line { display: flex; min-width: 0; align-items: center; }
+.disease-line .disease-name { max-width: 410rpx; }
+.preview-label { flex-shrink: 0; margin-left: 10rpx; padding: 3rpx 9rpx; color: #706038; background: #f3ead2; border-radius: 999rpx; font-size: 18rpx; }
 .confidence-pill { padding: 7rpx 14rpx; border-radius: 999rpx; font-size: 21rpx; }
 .pill-high { color: #17683c; background: #dff4e7; }
 .pill-medium { color: #99610c; background: #fff0cf; }

@@ -2,7 +2,7 @@
   <view class="result-card surface-card">
     <view class="result-heading">
       <view>
-        <text class="eyebrow">模型首选结果</text>
+        <text class="eyebrow">{{ result.is_preview ? "预览模式 · 模拟结果" : "模型首选结果" }}</text>
         <text class="result-name">{{ result.classifier_top1 }}</text>
       </view>
       <text class="confidence-tag" :class="`confidence-${result.confidence_level}`">

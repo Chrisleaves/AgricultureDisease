@@ -14,6 +14,7 @@ export interface DiagnosisResult {
   vlm_report: string | null;
   vlm_error: string | null;
   elapsed_ms: number;
+  is_preview?: boolean;
 }
 
 export interface DiagnosisResponseEnvelope {
