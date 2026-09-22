@@ -44,6 +44,8 @@ npm run dev:mp-weixin
 
 然后在微信开发者工具中导入 `dist/dev/mp-weixin`。没有 AppID 时可以先完成编译与代码检查，真机上传测试需要有效 AppID 和开发者权限。
 
+如果微信开发者工具中出现 `true%`、事件标识被当成按钮文字、页面状态与源码不一致等现象，说明热更新后的 WXML 与 JS 缓存没有同步。请停止旧的编译进程，重新执行 `npm run dev:mp-weixin`，并在微信开发者工具中选择“清缓存 → 全部清除”后重新编译；不要同时混用 `dist/dev/mp-weixin` 和 `dist/build/mp-weixin`。
+
 H5 开发预览：
 
 ```powershell

@@ -20,33 +20,39 @@
       <view class="section-heading">
         <view>
           <text class="section-title">选择作物图片</text>
-          <text class="muted-text">{{ state.image ? "已选择 1 张" : "尚未选择图片" }}</text>
+          <text v-if="hasSelectedImage" class="muted-text">已选择 1 张</text>
+          <text v-else class="muted-text">尚未选择图片</text>
         </view>
         <button class="health-button" :loading="healthChecking" @click="handleHealthCheck">检查服务</button>
       </view>
 
       <ImageUploader :disabled="busy" @choose="chooseImage" />
 
-      <view v-if="!state.image" class="empty-preview">
+      <view v-if="!hasSelectedImage" class="empty-preview">
         <view class="leaf-mark">叶</view>
         <text class="empty-title">还没有图片</text>
         <text class="empty-copy">请拍摄叶片正反面或从相册选择清晰照片</text>
       </view>
 
-      <ImagePreview
-        :image="state.image"
-        :disabled="busy"
-        @remove="clearImage"
-      />
+      <view v-else class="image-preview">
+        <view class="image-frame">
+          <image class="selected-image" :src="selectedImagePath" mode="aspectFit" />
+        </view>
+        <view class="image-meta">
+          <text>当前诊断图片</text>
+          <text class="file-size">{{ selectedImageSize }}</text>
+        </view>
+        <button class="remove-button" :disabled="busy" @click="removeSelectedImage">删除当前图片</button>
+      </view>
     </view>
 
-    <view v-if="state.stage === 'uploading'" class="surface-card progress-card">
+    <view v-if="isDiagnosing" class="surface-card progress-card">
       <view class="progress-heading">
         <text class="progress-title">{{ progressLabel }}</text>
-        <text class="progress-percent">{{ diagnosisProgress }}%</text>
+        <text class="progress-percent">{{ progressPercentText }}</text>
       </view>
       <view class="diagnosis-progress-track">
-        <view class="diagnosis-progress-value" :style="{ width: `${diagnosisProgress}%` }" />
+        <view class="diagnosis-progress-value" :style="progressBarStyle" />
       </view>
       <text class="progress-tip">模型分析可能需要数十秒，请保持页面开启</text>
     </view>
@@ -57,12 +63,27 @@
     </view>
 
     <button
+      v-if="isDiagnosing"
       class="primary-button diagnose-button"
-      :disabled="(!currentImage && !previewMode) || busy"
-      :loading="busy"
+      disabled
+      loading
+    >
+      正在分析，请稍候
+    </button>
+    <button
+      v-else-if="previewMode"
+      class="primary-button diagnose-button"
       @click="submitDiagnosis"
     >
-      {{ busy ? "正在分析，请稍候" : previewMode ? "查看示例诊断" : "诊断当前图片" }}
+      查看示例诊断
+    </button>
+    <button
+      v-else
+      class="primary-button diagnose-button"
+      :disabled="!hasSelectedImage"
+      @click="submitDiagnosis"
+    >
+      开始诊断
     </button>
 
     <view v-if="previewMode" class="config-notice">
@@ -80,13 +101,12 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
-import ImagePreview from "@/components/ImagePreview.vue";
 import ImageUploader from "@/components/ImageUploader.vue";
 import { checkHealth, diagnoseImage, getReadableError } from "@/services/diagnosis";
 import { useDiagnosisStore } from "@/stores/diagnosis";
 import type { SelectedImage } from "@/types/diagnosis";
 import { saveDiagnosisHistory } from "@/utils/history";
-import { persistSelectedImage, validateSelectedImage } from "@/utils/image";
+import { formatFileSize, persistSelectedImage, validateSelectedImage } from "@/utils/image";
 import {
   getConfiguredApiBaseUrl,
   getModelAccessConfig,
@@ -96,12 +116,18 @@ import {
 const { state, setImage, clearImage, setStage, setResult } = useDiagnosisStore();
 const healthChecking = ref(false);
 const currentImage = computed(() => state.image);
+const hasSelectedImage = computed(() => currentImage.value !== null);
+const selectedImagePath = computed(() => currentImage.value?.path ?? "");
+const selectedImageSize = computed(() => currentImage.value ? formatFileSize(currentImage.value.size) : "");
 const busy = computed(() => state.stage === "validating" || state.stage === "uploading");
+const isDiagnosing = computed(() => state.stage === "uploading");
 const accessConfig = ref<ModelAccessConfig | null>(null);
 const previewMode = computed(() => accessConfig.value?.mode === "preview");
 const accessModeLabel = computed(() => previewMode.value ? "预览模式" : "AI 模型已连接");
 const diagnosisProgress = ref(0);
 const progressLabel = ref("正在准备诊断…");
+const progressPercentText = computed(() => `${diagnosisProgress.value}%`);
+const progressBarStyle = computed(() => `width: ${diagnosisProgress.value}%`);
 let progressTimer: ReturnType<typeof setInterval> | undefined;
 
 onShow(() => {
@@ -165,6 +191,12 @@ async function handleHealthCheck() {
   } finally {
     healthChecking.value = false;
   }
+}
+
+function removeSelectedImage() {
+  if (busy.value) return;
+  clearImage();
+  setStage("idle");
 }
 
 async function submitDiagnosis() {
@@ -251,6 +283,12 @@ onUnmounted(stopProgress);
 .leaf-mark { display: flex; width: 82rpx; height: 82rpx; align-items: center; justify-content: center; color: #5b9b6e; background: #e3f2e7; border-radius: 60% 15% 60% 15%; font-size: 30rpx; font-weight: 700; transform: rotate(-8deg); }
 .empty-title { margin-top: 20rpx; color: #385442; font-size: 29rpx; font-weight: 650; }
 .empty-copy { margin-top: 8rpx; color: #87938b; font-size: 23rpx; text-align: center; }
+.image-preview { margin-top: 24rpx; }
+.image-frame { height: 470rpx; overflow: hidden; background: #15251b; border-radius: 22rpx; }
+.selected-image { display: block; width: 100%; height: 100%; }
+.image-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 16rpx; color: #415349; font-size: 25rpx; }
+.file-size { color: #829086; font-size: 22rpx; }
+.remove-button { margin-top: 16rpx; color: #a54335; background: #fff0ed; border-radius: 14rpx; font-size: 25rpx; }
 .status-banner { display: flex; align-items: center; margin-top: 22rpx; padding: 20rpx 24rpx; border-radius: 16rpx; font-size: 25rpx; }
 .status-validating,.status-uploading { color: #6a541c; background: #fff7dc; }
 .status-error { color: #8e3d32; background: #ffede9; }

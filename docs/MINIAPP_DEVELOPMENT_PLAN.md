@@ -75,7 +75,6 @@ apps/miniapp/
 │  │  └─ guide/           使用指南页
 │  ├─ components/
 │  │  ├─ ImageUploader.vue
-│  │  ├─ ImagePreview.vue
 │  │  ├─ CandidateChart.vue
 │  │  ├─ ResultCard.vue
 │  │  └─ ReportSections.vue
