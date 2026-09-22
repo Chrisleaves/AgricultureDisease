@@ -244,12 +244,12 @@ function scheduleProgressTick() {
   if (current >= 99) return;
 
   const delay = current < 40
-    ? 75
+    ? 120
     : current <= 50
-      ? 300
+      ? 470
       : current < 70
-        ? 150
-        : 60;
+        ? 235
+        : 95;
 
   progressTimer = setTimeout(() => {
     diagnosisProgress.value = Math.min(99, diagnosisProgress.value + 1);
