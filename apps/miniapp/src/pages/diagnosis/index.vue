@@ -11,9 +11,13 @@
 
   <view class="page-shell diagnosis-page">
     <view class="hero-card">
-      <view class="hero-badge">{{ accessModeLabel }}</view>
-      <text class="hero-title">拍一张清晰病叶，快速获得诊断建议</text>
-      <text class="hero-subtitle">当前选择的图片将作为本次诊断图片</text>
+      <image class="hero-background" src="/static/leaf-hero.jpg" mode="aspectFill" />
+      <view class="hero-shade" />
+      <view class="hero-content">
+        <view class="hero-badge">{{ accessModeLabel }}</view>
+        <text class="hero-title">拍一张清晰病叶，快速获得诊断建议</text>
+        <text class="hero-subtitle">当前选择的图片将作为本次诊断图片</text>
+      </view>
     </view>
 
     <view class="surface-card upload-card">
@@ -105,7 +109,7 @@ import ImageUploader from "@/components/ImageUploader.vue";
 import { checkHealth, diagnoseImage, getReadableError } from "@/services/diagnosis";
 import { useDiagnosisStore } from "@/stores/diagnosis";
 import type { SelectedImage } from "@/types/diagnosis";
-import { saveDiagnosisHistory } from "@/utils/history";
+import { saveDiagnosisHistory, updateDiagnosisHistoryImage } from "@/utils/history";
 import { formatFileSize, persistSelectedImage, validateSelectedImage } from "@/utils/image";
 import {
   getConfiguredApiBaseUrl,
@@ -208,7 +212,7 @@ async function submitDiagnosis() {
   try {
     const sourceImagePath = currentImage.value?.path ?? "";
     const result = await diagnoseImage(sourceImagePath);
-    await completeProgress();
+    completeProgress();
 
     if (result.diagnosis_status === "need_recapture") {
       clearImage();
@@ -218,8 +222,12 @@ async function submitDiagnosis() {
       return;
     }
 
-    const savedImagePath = sourceImagePath ? await persistSelectedImage(sourceImagePath) : "";
-    const history = saveDiagnosisHistory(result, savedImagePath);
+    const history = saveDiagnosisHistory(result, sourceImagePath);
+    if (sourceImagePath) {
+      void persistSelectedImage(sourceImagePath).then((savedImagePath) => {
+        updateDiagnosisHistoryImage(history.id, savedImagePath);
+      });
+    }
     setResult(result);
     clearImage();
     setStage("idle");
@@ -264,22 +272,10 @@ function stopProgress() {
   progressTimer = undefined;
 }
 
-async function completeProgress() {
+function completeProgress() {
   stopProgress();
-  await new Promise<void>((resolve) => {
-    const accelerate = () => {
-      if (diagnosisProgress.value >= 100) {
-        resolve();
-        return;
-      }
-      diagnosisProgress.value += 1;
-      progressTimer = setTimeout(accelerate, 18);
-    };
-    accelerate();
-  });
-  stopProgress();
+  diagnosisProgress.value = 100;
   progressLabel.value = "分析完成";
-  await new Promise((resolve) => setTimeout(resolve, 250));
 }
 
 function changeModel() {
@@ -296,7 +292,10 @@ onUnmounted(stopProgress);
 .back-settings { position: absolute; left: 18rpx; display: flex; align-items: center; margin: 0; padding: 8rpx 14rpx 8rpx 6rpx; color: #fff; background: transparent; font-size: 24rpx; line-height: 1.5; }
 .back-arrow { margin-right: 5rpx; font-size: 46rpx; font-weight: 300; line-height: .8; }
 .diagnosis-page { padding-top: 22rpx; }
-.hero-card { padding: 36rpx 32rpx 46rpx; color: #fff; background: linear-gradient(110deg, rgba(15, 72, 45, .9), rgba(38, 125, 76, .7)), url("/static/leaf-hero.jpg") center / cover no-repeat; border-radius: 28rpx; box-shadow: 0 16rpx 36rpx rgba(25, 84, 53, 0.2); }
+.hero-card { position: relative; padding: 36rpx 32rpx 46rpx; overflow: hidden; color: #fff; background: #236f49; border-radius: 28rpx; box-shadow: 0 16rpx 36rpx rgba(25, 84, 53, 0.2); }
+.hero-background,.hero-shade { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; }
+.hero-shade { background: linear-gradient(110deg, rgba(15, 72, 45, .9), rgba(38, 125, 76, .7)); }
+.hero-content { position: relative; z-index: 1; }
 .hero-badge { display: inline-block; padding: 7rpx 16rpx; color: #dff5e7; background: rgba(255,255,255,.14); border: 1rpx solid rgba(255,255,255,.25); border-radius: 999rpx; font-size: 22rpx; }
 .hero-title { display: block; max-width: 580rpx; margin-top: 20rpx; font-size: 42rpx; font-weight: 750; line-height: 1.38; }
 .hero-subtitle { display: block; margin-top: 14rpx; color: rgba(255,255,255,.78); font-size: 24rpx; }

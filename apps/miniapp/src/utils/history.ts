@@ -36,6 +36,19 @@ export function clearDiagnosisHistory() {
   uni.removeStorageSync(HISTORY_KEY);
 }
 
+export function updateDiagnosisHistoryImage(id: string, imagePath: string) {
+  if (!imagePath) return;
+  try {
+    const history = getDiagnosisHistory();
+    const item = history.find((entry) => entry.id === id);
+    if (!item) return;
+    item.imagePath = imagePath;
+    uni.setStorageSync(HISTORY_KEY, history);
+  } catch {
+    // 临时图片仍可用于当前结果页，持久化失败不应阻塞页面跳转。
+  }
+}
+
 export function findDiagnosisHistory(id: string): DiagnosisHistoryItem | undefined {
   return getDiagnosisHistory().find((item) => item.id === id);
 }
