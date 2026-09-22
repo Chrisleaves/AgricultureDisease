@@ -1,6 +1,5 @@
 import type { SelectedImage } from "@/types/diagnosis";
 
-export const MAX_IMAGE_COUNT = 9;
 export const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const SUPPORTED_TYPES = ["jpg", "jpeg", "png", "webp"];
 
@@ -43,4 +42,15 @@ export async function validateSelectedImage(path: string, size: number): Promise
 
 export function formatFileSize(bytes: number): string {
   return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`;
+}
+
+export function persistSelectedImage(path: string): Promise<string> {
+  if (!path) return Promise.resolve("");
+  return new Promise((resolve) => {
+    uni.saveFile({
+      tempFilePath: path,
+      success: (response) => resolve(response.savedFilePath),
+      fail: () => resolve(path),
+    });
+  });
 }

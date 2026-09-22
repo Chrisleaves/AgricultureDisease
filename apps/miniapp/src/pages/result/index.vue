@@ -1,6 +1,18 @@
 <template>
   <view class="page-shell result-page">
     <template v-if="result">
+      <view v-if="historyItem" class="surface-card diagnosis-source">
+        <image
+          v-if="historyItem.imagePath"
+          class="diagnosis-image"
+          :src="historyItem.imagePath"
+          mode="aspectFit"
+        />
+        <view class="diagnosis-meta">
+          <text class="diagnosis-meta-title">本次诊断图片</text>
+          <text class="diagnosis-time">{{ formatDateTime(historyItem.createdAt) }}</text>
+        </view>
+      </view>
       <ResultCard :result="result" />
       <CandidateChart :candidates="result.candidates" />
       <ReportSections :report="result.vlm_report" :error="result.vlm_error" />
@@ -29,16 +41,25 @@ import CandidateChart from "@/components/CandidateChart.vue";
 import ReportSections from "@/components/ReportSections.vue";
 import ResultCard from "@/components/ResultCard.vue";
 import { useDiagnosisStore } from "@/stores/diagnosis";
-import type { DiagnosisResult } from "@/types/diagnosis";
+import type { DiagnosisHistoryItem, DiagnosisResult } from "@/types/diagnosis";
 import { findDiagnosisHistory } from "@/utils/history";
 
 const { state } = useDiagnosisStore();
 const result = ref<DiagnosisResult | null>(null);
+const historyItem = ref<DiagnosisHistoryItem | null>(null);
 
 onLoad((options) => {
   const historyId = typeof options?.id === "string" ? decodeURIComponent(options.id) : "";
-  result.value = (historyId ? findDiagnosisHistory(historyId)?.result : null) ?? state.latestResult;
+  historyItem.value = historyId ? findDiagnosisHistory(historyId) ?? null : null;
+  result.value = historyItem.value?.result ?? state.latestResult;
 });
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
 
 function backToDiagnosis() {
   uni.switchTab({ url: "/pages/diagnosis/index" });
@@ -47,6 +68,11 @@ function backToDiagnosis() {
 
 <style scoped lang="scss">
 .result-page { padding-top: 22rpx; }
+.diagnosis-source { margin-bottom: 24rpx; padding: 0; overflow: hidden; }
+.diagnosis-image { display: block; width: 100%; height: 390rpx; background: #14251a; }
+.diagnosis-meta { display: flex; align-items: center; justify-content: space-between; padding: 22rpx 26rpx; }
+.diagnosis-meta-title { color: #294431; font-size: 26rpx; font-weight: 700; }
+.diagnosis-time { color: #718078; font-size: 23rpx; }
 .safety-card { margin-top: 24rpx; padding: 24rpx 26rpx; color: #71551f; background: #fff7df; border: 1rpx solid #f0dc9f; border-radius: 18rpx; font-size: 25rpx; line-height: 1.7; }
 .safety-heading { display: block; margin-bottom: 6rpx; font-weight: 700; }
 .action-button { margin-top: 26rpx; }

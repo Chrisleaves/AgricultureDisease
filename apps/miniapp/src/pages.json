@@ -19,6 +19,12 @@
       }
     },
     {
+      "path": "pages/recapture/index",
+      "style": {
+        "navigationBarTitleText": "重新拍摄"
+      }
+    },
+    {
       "path": "pages/history/index",
       "style": {
         "navigationBarTitleText": "诊断记录"

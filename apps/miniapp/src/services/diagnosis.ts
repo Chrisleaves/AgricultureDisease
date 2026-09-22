@@ -78,24 +78,29 @@ function parseDiagnosisResult(payload: unknown): DiagnosisResult {
   const candidates = Array.isArray(body.candidates)
     ? body.candidates.map(parseCandidate).filter((item): item is DiagnosisCandidate => item !== null)
     : [];
+  const diagnosisStatus = body.diagnosis_status === "need_recapture" ? "need_recapture" : "ok";
 
   if (
-    candidates.length === 0 ||
-    typeof body.classifier_top1 !== "string" ||
-    typeof body.confidence !== "number" ||
-    !Number.isFinite(body.confidence) ||
-    body.confidence < 0 ||
-    body.confidence > 1 ||
-    !isConfidenceLevel(body.confidence_level)
+    (diagnosisStatus === "ok" && candidates.length === 0) ||
+    (diagnosisStatus === "ok" && typeof body.classifier_top1 !== "string") ||
+    (diagnosisStatus === "ok" && (
+      typeof body.confidence !== "number" ||
+      !Number.isFinite(body.confidence) ||
+      body.confidence < 0 ||
+      body.confidence > 1 ||
+      !isConfidenceLevel(body.confidence_level)
+    ))
   ) {
     throw new DiagnosisApiError("诊断响应缺少必要字段或概率超出范围");
   }
 
   return {
     candidates,
-    classifier_top1: body.classifier_top1,
-    confidence: body.confidence,
-    confidence_level: body.confidence_level,
+    classifier_top1: typeof body.classifier_top1 === "string" ? body.classifier_top1 : "无法诊断",
+    confidence: typeof body.confidence === "number" ? body.confidence : 0,
+    confidence_level: isConfidenceLevel(body.confidence_level) ? body.confidence_level : "low",
+    diagnosis_status: diagnosisStatus,
+    recapture_reason: typeof body.recapture_reason === "string" ? body.recapture_reason : null,
     vlm_report: typeof body.vlm_report === "string" ? body.vlm_report : null,
     vlm_error: typeof body.vlm_error === "string" ? body.vlm_error : null,
     elapsed_ms: typeof body.elapsed_ms === "number" ? body.elapsed_ms : 0,
@@ -170,6 +175,8 @@ function getPreviewResult(): DiagnosisResult {
     classifier_top1: "番茄-晚疫病（预览示例）",
     confidence: 0.82,
     confidence_level: "high",
+    diagnosis_status: "ok",
+    recapture_reason: null,
     vlm_report:
       "【最终诊断】这是预览模式生成的模拟结果，不代表所选图片的真实诊断。\n\n【诊断依据】当前没有连接模型服务，此处用于演示候选概率、报告分段和页面布局。\n\n【防治方案】接入真实模型后，请根据真实结果并结合当地登记用药制定方案。\n\n【复查建议】配置模型 URL 后重新诊断，并由农技人员结合田间症状复核。",
     vlm_error: null,

@@ -1,21 +1,20 @@
 <template>
   <view class="uploader">
-    <button class="source-button" :disabled="disabled || remaining <= 0" @click="chooseFromAlbum">
+    <button class="source-button" :disabled="disabled" @click="chooseFromAlbum">
       <text class="source-icon">▧</text>
       <text>从相册选择</text>
     </button>
-    <button class="source-button" :disabled="disabled || remaining <= 0" @click="takePhoto">
+    <button class="source-button" :disabled="disabled" @click="takePhoto">
       <text class="source-icon">◉</text>
       <text>拍摄照片</text>
     </button>
   </view>
-  <text class="uploader-tip">支持 JPG、PNG、WEBP，单张不超过 10 MB，最多 9 张</text>
+  <text class="uploader-tip">支持 JPG、PNG、WEBP，单张不超过 10 MB；重新选择会替换当前图片</text>
 </template>
 
 <script setup lang="ts">
 const props = defineProps<{
   disabled?: boolean;
-  remaining: number;
 }>();
 
 const emit = defineEmits<{
@@ -23,11 +22,11 @@ const emit = defineEmits<{
 }>();
 
 function chooseFromAlbum() {
-  if (!props.disabled && props.remaining > 0) emit("choose", "album");
+  if (!props.disabled) emit("choose", "album");
 }
 
 function takePhoto() {
-  if (!props.disabled && props.remaining > 0) emit("choose", "camera");
+  if (!props.disabled) emit("choose", "camera");
 }
 </script>
 

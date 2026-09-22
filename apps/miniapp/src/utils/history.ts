@@ -19,11 +19,12 @@ export function getDiagnosisHistory(): DiagnosisHistoryItem[] {
   }
 }
 
-export function saveDiagnosisHistory(result: DiagnosisResult): DiagnosisHistoryItem {
+export function saveDiagnosisHistory(result: DiagnosisResult, imagePath = ""): DiagnosisHistoryItem {
   const now = new Date();
   const item: DiagnosisHistoryItem = {
     id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: now.toISOString(),
+    imagePath: imagePath || undefined,
     result,
   };
   const next = [item, ...getDiagnosisHistory()].slice(0, MAX_HISTORY_COUNT);

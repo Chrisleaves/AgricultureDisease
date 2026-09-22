@@ -13,37 +13,46 @@
     <view class="hero-card">
       <view class="hero-badge">{{ accessModeLabel }}</view>
       <text class="hero-title">拍一张清晰病叶，快速获得诊断建议</text>
-      <text class="hero-subtitle">当前轮播中的图片将作为本次诊断图片</text>
+      <text class="hero-subtitle">当前选择的图片将作为本次诊断图片</text>
     </view>
 
     <view class="surface-card upload-card">
       <view class="section-heading">
         <view>
           <text class="section-title">选择作物图片</text>
-          <text class="muted-text">已选择 {{ state.images.length }} 张</text>
+          <text class="muted-text">{{ state.image ? "已选择 1 张" : "尚未选择图片" }}</text>
         </view>
         <button class="health-button" :loading="healthChecking" @click="handleHealthCheck">检查服务</button>
       </view>
 
-      <ImageUploader :disabled="busy" :remaining="remaining" @choose="chooseImages" />
+      <ImageUploader :disabled="busy" @choose="chooseImage" />
 
-      <view v-if="!state.images.length" class="empty-preview">
+      <view v-if="!state.image" class="empty-preview">
         <view class="leaf-mark">叶</view>
         <text class="empty-title">还没有图片</text>
         <text class="empty-copy">请拍摄叶片正反面或从相册选择清晰照片</text>
       </view>
 
-      <ImageCarousel
-        :images="state.images"
-        :current-index="state.currentIndex"
+      <ImagePreview
+        :image="state.image"
         :disabled="busy"
-        @update:current-index="setCurrentIndex"
-        @remove="removeImage"
+        @remove="clearImage"
       />
     </view>
 
-    <view v-if="state.message" class="status-banner" :class="`status-${state.stage}`">
-      <view v-if="busy" class="status-spinner" />
+    <view v-if="state.stage === 'uploading'" class="surface-card progress-card">
+      <view class="progress-heading">
+        <text class="progress-title">{{ progressLabel }}</text>
+        <text class="progress-percent">{{ diagnosisProgress }}%</text>
+      </view>
+      <view class="diagnosis-progress-track">
+        <view class="diagnosis-progress-value" :style="{ width: `${diagnosisProgress}%` }" />
+      </view>
+      <text class="progress-tip">模型分析可能需要数十秒，请保持页面开启</text>
+    </view>
+
+    <view v-else-if="state.message" class="status-banner" :class="`status-${state.stage}`">
+      <view v-if="state.stage === 'validating'" class="status-spinner" />
       <text>{{ state.message }}</text>
     </view>
 
@@ -69,29 +78,31 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onUnmounted, ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
-import ImageCarousel from "@/components/ImageCarousel.vue";
+import ImagePreview from "@/components/ImagePreview.vue";
 import ImageUploader from "@/components/ImageUploader.vue";
 import { checkHealth, diagnoseImage, getReadableError } from "@/services/diagnosis";
 import { useDiagnosisStore } from "@/stores/diagnosis";
 import type { SelectedImage } from "@/types/diagnosis";
 import { saveDiagnosisHistory } from "@/utils/history";
-import { MAX_IMAGE_COUNT, validateSelectedImage } from "@/utils/image";
+import { persistSelectedImage, validateSelectedImage } from "@/utils/image";
 import {
   getConfiguredApiBaseUrl,
   getModelAccessConfig,
   type ModelAccessConfig,
 } from "@/utils/model-config";
 
-const { state, appendImages, removeImage, setCurrentIndex, setStage, setResult } = useDiagnosisStore();
+const { state, setImage, clearImage, setStage, setResult } = useDiagnosisStore();
 const healthChecking = ref(false);
-const remaining = computed(() => Math.max(0, MAX_IMAGE_COUNT - state.images.length));
-const currentImage = computed(() => state.images[state.currentIndex]);
+const currentImage = computed(() => state.image);
 const busy = computed(() => state.stage === "validating" || state.stage === "uploading");
 const accessConfig = ref<ModelAccessConfig | null>(null);
 const previewMode = computed(() => accessConfig.value?.mode === "preview");
 const accessModeLabel = computed(() => previewMode.value ? "预览模式" : "AI 模型已连接");
+const diagnosisProgress = ref(0);
+const progressLabel = ref("正在准备诊断…");
+let progressTimer: ReturnType<typeof setInterval> | undefined;
 
 onShow(() => {
   accessConfig.value = getModelAccessConfig();
@@ -100,43 +111,38 @@ onShow(() => {
   }
 });
 
-async function validateFiles(files: Array<{ path: string; size: number }>) {
+async function validateImage(file: { path: string; size: number }) {
   setStage("validating", "正在检查图片…");
-  const accepted: SelectedImage[] = [];
-  const rejected: string[] = [];
-
-  for (const file of files) {
-    try {
-      accepted.push(await validateSelectedImage(file.path, file.size));
-    } catch (error) {
-      rejected.push(getReadableError(error));
-    }
-  }
-
-  if (accepted.length) appendImages(accepted);
-  setStage("idle");
-
-  if (rejected.length) {
+  try {
+    const selected: SelectedImage = await validateSelectedImage(file.path, file.size);
+    setImage(selected);
+    setStage("idle");
+  } catch (error) {
+    setStage("idle");
     uni.showModal({
-      title: "部分图片未加入",
-      content: [...new Set(rejected)].join("\n"),
+      title: "图片无法使用",
+      content: getReadableError(error),
       showCancel: false,
     });
   }
 }
 
-function chooseImages(source: "album" | "camera") {
+function chooseImage(source: "album" | "camera") {
   uni.chooseImage({
-    count: source === "camera" ? 1 : remaining.value,
+    count: 1,
     sourceType: [source],
     sizeType: ["original", "compressed"],
     success(response) {
-      const rawFiles = Array.isArray(response.tempFiles) ? response.tempFiles : [response.tempFiles];
-      const files = rawFiles.map((file, index) => ({
-        path: "path" in file ? file.path : response.tempFilePaths[index],
-        size: file.size,
-      }));
-      void validateFiles(files);
+      const rawFile = Array.isArray(response.tempFiles) ? response.tempFiles[0] : response.tempFiles;
+      if (!rawFile) {
+        uni.showToast({ title: "未能读取图片", icon: "none" });
+        return;
+      }
+      const file = {
+        path: "path" in rawFile ? rawFile.path : response.tempFilePaths[0],
+        size: rawFile.size,
+      };
+      void validateImage(file);
     },
     fail(error) {
       if (!error.errMsg?.includes("cancel")) {
@@ -165,23 +171,65 @@ async function submitDiagnosis() {
   if ((!currentImage.value && !previewMode.value) || busy.value) return;
   setResult(null);
   setStage("uploading", previewMode.value ? "正在生成预览结果…" : "正在上传并分析当前图片，通常需要数秒…");
+  startProgress();
 
   try {
-    const result = await diagnoseImage(currentImage.value?.path ?? "");
-    const history = saveDiagnosisHistory(result);
+    const sourceImagePath = currentImage.value?.path ?? "";
+    const result = await diagnoseImage(sourceImagePath);
+    await completeProgress();
+
+    if (result.diagnosis_status === "need_recapture") {
+      clearImage();
+      setStage("idle");
+      const reason = result.recapture_reason || "未识别到清晰的作物叶片，请重新拍摄。";
+      await uni.navigateTo({ url: `/pages/recapture/index?reason=${encodeURIComponent(reason)}` });
+      return;
+    }
+
+    const savedImagePath = sourceImagePath ? await persistSelectedImage(sourceImagePath) : "";
+    const history = saveDiagnosisHistory(result, savedImagePath);
     setResult(result);
-    setStage("success", "诊断完成");
+    clearImage();
+    setStage("idle");
     await uni.navigateTo({ url: `/pages/result/index?id=${encodeURIComponent(history.id)}` });
   } catch (error) {
+    stopProgress();
     const message = getReadableError(error);
     setStage("error", message);
     uni.showModal({ title: "诊断未完成", content: message, showCancel: false });
   }
 }
 
+function startProgress() {
+  stopProgress();
+  diagnosisProgress.value = 6;
+  progressLabel.value = previewMode.value ? "正在生成示例结果…" : "正在上传图片…";
+  progressTimer = setInterval(() => {
+    const current = diagnosisProgress.value;
+    if (current >= 92) return;
+    diagnosisProgress.value = Math.min(92, current + Math.max(1, Math.round((92 - current) * 0.08)));
+    if (diagnosisProgress.value >= 65) progressLabel.value = "多模态模型正在复核…";
+    else if (diagnosisProgress.value >= 25) progressLabel.value = "分类模型正在识别…";
+  }, 800);
+}
+
+function stopProgress() {
+  if (progressTimer) clearInterval(progressTimer);
+  progressTimer = undefined;
+}
+
+async function completeProgress() {
+  stopProgress();
+  diagnosisProgress.value = 100;
+  progressLabel.value = "分析完成";
+  await new Promise((resolve) => setTimeout(resolve, 350));
+}
+
 function changeModel() {
   uni.navigateTo({ url: "/pages/setup/index?from=settings" });
 }
+
+onUnmounted(stopProgress);
 </script>
 
 <style scoped lang="scss">
@@ -209,6 +257,13 @@ function changeModel() {
 .status-success { color: #216540; background: #e7f6ec; }
 .status-spinner { width: 22rpx; height: 22rpx; margin-right: 14rpx; border: 4rpx solid rgba(105,84,28,.22); border-top-color: #8c6d21; border-radius: 50%; animation: spin .8s linear infinite; }
 .diagnose-button { margin-top: 24rpx; padding: 6rpx 0; line-height: 2.6; }
+.progress-card { margin-top: 22rpx; }
+.progress-heading { display: flex; align-items: center; justify-content: space-between; }
+.progress-title { color: #294431; font-size: 27rpx; font-weight: 650; }
+.progress-percent { color: #287b4d; font-size: 27rpx; font-weight: 750; }
+.diagnosis-progress-track { height: 16rpx; margin-top: 18rpx; overflow: hidden; background: #dfe9e1; border-radius: 999rpx; }
+.diagnosis-progress-value { height: 100%; background: linear-gradient(90deg, #287b4d, #75ba71); border-radius: inherit; transition: width .45s ease; }
+.progress-tip { display: block; margin-top: 14rpx; color: #78867c; font-size: 22rpx; }
 .config-notice,.safety-note { margin-top: 22rpx; padding: 22rpx 24rpx; border-radius: 16rpx; font-size: 24rpx; line-height: 1.65; }
 .config-notice { color: #795a19; background: #fff7df; border: 1rpx solid #f0dc9f; }
 .config-title,.safety-title { display: block; margin-bottom: 5rpx; font-weight: 700; }

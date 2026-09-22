@@ -1,4 +1,5 @@
 export type ConfidenceLevel = "high" | "medium" | "low";
+export type DiagnosisStatus = "ok" | "need_recapture";
 
 export interface DiagnosisCandidate {
   label_cn: string;
@@ -11,6 +12,8 @@ export interface DiagnosisResult {
   classifier_top1: string;
   confidence: number;
   confidence_level: ConfidenceLevel;
+  diagnosis_status: DiagnosisStatus;
+  recapture_reason: string | null;
   vlm_report: string | null;
   vlm_error: string | null;
   elapsed_ms: number;
@@ -40,6 +43,7 @@ export interface SelectedImage {
 export interface DiagnosisHistoryItem {
   id: string;
   createdAt: string;
+  imagePath?: string;
   result: DiagnosisResult;
 }
 
