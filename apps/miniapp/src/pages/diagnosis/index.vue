@@ -133,6 +133,10 @@ const progressLabel = ref("正在准备诊断…");
 const heroBackgroundSrc = ref("/static/leaf-hero.jpg");
 const progressPercentText = computed(() => `${diagnosisProgress.value}%`);
 const progressBarStyle = computed(() => `width: ${diagnosisProgress.value}%`);
+const PROGRESS_DURATION_MS = 22_000;
+const PROGRESS_WEIGHTS = [1, 2.2, 0.55, 2.1] as const;
+let progressMilestones: [number, number, number] = [25, 53, 82];
+let progressUnitMs = 0;
 let progressTimer: ReturnType<typeof setTimeout> | undefined;
 
 onShow(() => {
@@ -213,7 +217,7 @@ async function submitDiagnosis() {
   try {
     const sourceImagePath = currentImage.value?.path ?? "";
     const result = await diagnoseImage(sourceImagePath);
-    completeProgress();
+    await completeProgress();
 
     if (result.diagnosis_status === "need_recapture") {
       clearImage();
@@ -244,26 +248,39 @@ async function submitDiagnosis() {
 function startProgress() {
   stopProgress();
   diagnosisProgress.value = 1;
+  progressMilestones = [randomPercent(20, 30), randomPercent(48, 58), randomPercent(78, 88)];
+  const [first, second, third] = progressMilestones;
+  const weightedSteps = (first - 1) * PROGRESS_WEIGHTS[0]
+    + (second - first) * PROGRESS_WEIGHTS[1]
+    + (third - second) * PROGRESS_WEIGHTS[2]
+    + (99 - third) * PROGRESS_WEIGHTS[3];
+  progressUnitMs = PROGRESS_DURATION_MS / weightedSteps;
   progressLabel.value = previewMode.value ? "正在生成示例结果…" : "正在上传图片…";
   scheduleProgressTick();
+}
+
+function randomPercent(min: number, max: number) {
+  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 function scheduleProgressTick() {
   const current = diagnosisProgress.value;
   if (current >= 99) return;
 
-  const delay = current < 40
-    ? 155
-    : current <= 50
-      ? 605
-      : current < 70
-        ? 303
-        : 122;
+  const [first, second, third] = progressMilestones;
+  const weight = current < first
+    ? PROGRESS_WEIGHTS[0]
+    : current < second
+      ? PROGRESS_WEIGHTS[1]
+      : current < third
+        ? PROGRESS_WEIGHTS[2]
+        : PROGRESS_WEIGHTS[3];
+  const delay = Math.round(progressUnitMs * weight);
 
   progressTimer = setTimeout(() => {
     diagnosisProgress.value = Math.min(99, diagnosisProgress.value + 1);
-    if (diagnosisProgress.value >= 70) progressLabel.value = "多模态模型正在复核…";
-    else if (diagnosisProgress.value >= 40) progressLabel.value = "分类模型正在识别…";
+    if (diagnosisProgress.value >= third) progressLabel.value = "多模态模型正在复核…";
+    else if (diagnosisProgress.value >= first) progressLabel.value = "分类模型正在识别…";
     scheduleProgressTick();
   }, delay);
 }
@@ -273,10 +290,17 @@ function stopProgress() {
   progressTimer = undefined;
 }
 
-function completeProgress() {
+async function completeProgress() {
   stopProgress();
-  diagnosisProgress.value = 100;
+  progressLabel.value = "正在完成诊断…";
+  const remaining = 100 - diagnosisProgress.value;
+  const delay = Math.max(18, Math.min(55, Math.round(1100 / remaining)));
+  while (diagnosisProgress.value < 100) {
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    diagnosisProgress.value += 1;
+  }
   progressLabel.value = "分析完成";
+  await new Promise((resolve) => setTimeout(resolve, 120));
 }
 
 function changeModel() {
@@ -325,7 +349,7 @@ onUnmounted(stopProgress);
 .progress-title { color: #294431; font-size: 27rpx; font-weight: 650; }
 .progress-percent { color: #287b4d; font-size: 27rpx; font-weight: 750; }
 .diagnosis-progress-track { height: 16rpx; margin-top: 18rpx; overflow: hidden; background: #dfe9e1; border-radius: 999rpx; }
-.diagnosis-progress-value { height: 100%; background: linear-gradient(90deg, #287b4d, #75ba71); border-radius: inherit; transition: width .45s ease; }
+.diagnosis-progress-value { height: 100%; background: linear-gradient(90deg, #287b4d, #75ba71); border-radius: inherit; transition: width .1s linear; }
 .progress-tip { display: block; margin-top: 14rpx; color: #78867c; font-size: 22rpx; }
 .config-notice,.safety-note { margin-top: 22rpx; padding: 22rpx 24rpx; border-radius: 16rpx; font-size: 24rpx; line-height: 1.65; }
 .config-notice { color: #795a19; background: #fff7df; border: 1rpx solid #f0dc9f; }
