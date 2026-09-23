@@ -11,7 +11,7 @@
 
   <view class="page-shell diagnosis-page">
     <view class="hero-card">
-      <image class="hero-background" src="/static/leaf-hero.jpg" mode="aspectFill" />
+      <image class="hero-background" :src="heroBackgroundSrc" mode="aspectFill" />
       <view class="hero-shade" />
       <view class="hero-content">
         <view class="hero-badge">{{ accessModeLabel }}</view>
@@ -130,6 +130,7 @@ const previewMode = computed(() => accessConfig.value?.mode === "preview");
 const accessModeLabel = computed(() => previewMode.value ? "预览模式" : "AI 模型已连接");
 const diagnosisProgress = ref(0);
 const progressLabel = ref("正在准备诊断…");
+const heroBackgroundSrc = ref("/static/leaf-hero.jpg");
 const progressPercentText = computed(() => `${diagnosisProgress.value}%`);
 const progressBarStyle = computed(() => `width: ${diagnosisProgress.value}%`);
 let progressTimer: ReturnType<typeof setTimeout> | undefined;
